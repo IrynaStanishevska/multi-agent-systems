@@ -16,11 +16,14 @@ def load_documents():
     docs = []
     data_path = Path(settings.data_dir)
 
+    if not data_path.exists():
+        raise FileNotFoundError(f"Data directory not found: {data_path}")
+
     for file in data_path.glob("*"):
-        if file.suffix == ".pdf":
+        if file.suffix.lower() == ".pdf":
             docs.extend(PyPDFLoader(str(file)).load())
-        elif file.suffix in [".txt", ".md"]:
-            docs.extend(TextLoader(str(file)).load())
+        elif file.suffix.lower() in [".txt", ".md"]:
+            docs.extend(TextLoader(str(file), encoding="utf-8").load())
 
     return docs
 
@@ -30,6 +33,9 @@ def ingest():
     documents = load_documents()
     print(f"Loaded {len(documents)} docs")
 
+    if not documents:
+        raise ValueError("No documents found in the data directory.")
+
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=settings.chunk_size,
         chunk_overlap=settings.chunk_overlap,
@@ -38,7 +44,13 @@ def ingest():
     chunks = splitter.split_documents(documents)
     print(f"Split into {len(chunks)} chunks")
 
-    embeddings = OpenAIEmbeddings(model=settings.embedding_model)
+    if not chunks:
+        raise ValueError("No chunks were created from the documents.")
+
+    embeddings = OpenAIEmbeddings(
+        model=settings.embedding_model,
+        api_key=settings.api_key.get_secret_value(),
+    )
 
     print("🔨 Building FAISS index...")
     vectorstore = FAISS.from_documents(chunks, embeddings)
@@ -46,11 +58,10 @@ def ingest():
     os.makedirs(settings.index_dir, exist_ok=True)
     vectorstore.save_local(settings.index_dir)
 
-    # Save chunks for BM25
     with open(f"{settings.index_dir}/chunks.pkl", "wb") as f:
         pickle.dump(chunks, f)
 
-    print("Ingestion complete")
+    print("✅ Ingestion complete")
 
 
 if __name__ == "__main__":

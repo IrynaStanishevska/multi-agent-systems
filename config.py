@@ -1,10 +1,10 @@
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    api_key: SecretStr
-    model_name: str = "gpt-5.2"
+    api_key: SecretStr = Field(alias="OPENAI_API_KEY")
+    model_name: str = Field(default="gpt-5.4", alias="MODEL_NAME")
 
     # Web search
     max_search_results: int = 5
@@ -23,7 +23,10 @@ class Settings(BaseSettings):
     output_dir: str = "output"
     max_iterations: int = 10
 
-    model_config = {"env_file": ".env"}
+    model_config = {
+        "env_file": ".env",
+        "populate_by_name": True,
+    }
 
 
 SYSTEM_PROMPT = """

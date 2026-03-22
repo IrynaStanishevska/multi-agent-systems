@@ -19,13 +19,8 @@ def main():
             print("Goodbye!")
             break
 
-        for chunk in agent.stream(
-            {"messages": [("user", user_input)]},
-        ):
-            if "agent" in chunk and "messages" in chunk["agent"]:
-                for msg in chunk["agent"]["messages"]:
-                    if hasattr(msg, "content") and msg.content:
-                        print(f"\nAgent: {msg.content}")
+        answer = agent.run(user_input)
+        print(f"\nAgent: {answer}")
 
 
 if __name__ == "__main__":
